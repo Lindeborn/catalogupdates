@@ -1,0 +1,738 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<unload unload_date="2026-03-25 19:28:15">
+<sp_widget action="INSERT_OR_UPDATE">
+<category>custom</category>
+<client_script><![CDATA[function test($scope, spUtil, $timeout, $sce) {
+    var c = this;
+
+    c.myOffers = c.data.myOffers || [];
+    c.myOffersToUpdate = c.data.myOffersToUpdate || [];
+    c.totalMyOffers = c.data.totalMyOffers || 0;
+    c.totalMyOffersToUpdate = c.data.totalMyOffersToUpdate || 0;
+    c.active = null;
+
+    c.select = function(item) {
+        if (!item) return;
+        c.active = item;
+    };
+
+    c.clearSelection = function() {
+        c.active = null;
+    };
+
+    c.safe = function(html) {
+        return $sce.trustAsHtml(html || '');
+    };
+
+    c.viewState = function() {
+        if (c.active) return 'detail';
+        if (c.myOffers && c.myOffers.length > 0) return 'overview';
+        return 'welcome';
+    };
+
+    c.activeTab = 'all';
+
+    c.setTab = function(tab) {
+        c.activeTab = tab;
+    };
+
+    c.isTab = function(tab) {
+        return c.activeTab === tab;
+    };
+}]]></client_script>
+<controller_as>c</controller_as>
+<css>/* Baslayout */
+.sf-wrapper {
+ /* max-width: 2500px;*/
+  margin: 0 auto;
+}
+
+.text-block h1 {  
+  font-size: 25px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.text-block p {
+  margin: 2px 0 0 0;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.sf-content .sf-card {
+  background: #fff;
+  border: 1px solid #e8ecf2;
+  border-radius: 16px;
+  box-shadow: 0 8px 22px rgba(31, 42, 68, 0.06);
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.sf-card-title {
+  font-weight: 600;
+  color: #223;
+  margin-bottom: 10px;
+}
+
+.sf-card-subtitle {
+  color: #6b7280;
+  font-size: 12px;
+  margin-top: 8px;
+  margin-bottom: 6px;
+}
+
+.solutionfinder.flex3{
+  display:flex;
+  gap:16px;
+  height:80vh;
+  padding:12px;
+  background:#fafafa;
+}
+
+
+.solutionfinder .pane{
+  background:#fff;
+  border-radius:10px;
+  box-shadow:0 1px 3px rgba(0,0,0,.06);
+  padding:16px;
+  overflow:auto;
+}
+
+
+/* --- Layout via flex istället för Bootstrap grid --- */
+.sf-content.solutionfinder {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+}
+
+/* Breddfördelning (vänster smal, mitten bredare, höger störst) */
+.solutionfinder .left  { flex: 0 0 260px; }   /* sökfält */
+.solutionfinder .mid   { flex: 0 0 25%;   }   /* träfflista */
+.solutionfinder .right { flex: 1 1 auto; }    /* lösningar och detaljer */
+
+@media (max-width: 992px) {
+  .solutionfinder.flex3 {
+    flex-direction: column;
+    min-height: auto;
+  }
+  .pane.right .sf-card {
+    height: auto;
+  }
+}
+
+
+/* Sök */
+.sf-input {
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid #d8deea;
+}
+
+.sf-input:focus {
+  outline: none;
+  border-color: #7aa2f7;
+  box-shadow: 0 0 0 3px rgba(71, 132, 255, 0.18);
+}
+
+.sf-help {
+  color: #7a859f;
+  font-size: 11px;
+  margin-top: 6px;
+}
+
+.sf-checkboxes .sf-check {
+  display: block;
+  margin: 6px 0;
+  color: #2b2f3a;
+}
+
+.sf-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.btn.btn-primary {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  border-radius: 10px;
+}
+
+.btn.btn-primary:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+.btn.btn-default {
+  border-radius: 10px;
+}
+
+/* Träfflista – layout med nummer ovanför text */
+.sf-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px 8px;
+  border-radius: 0;
+  cursor: pointer;
+  border: none;
+  border-bottom: 2px solid #e5e9f2; /* ← tunt separatorstreck */
+  transition: background 0.2s, border 0.2s;
+}
+
+.sf-item:last-child {
+  border-bottom: none; /* inget streck efter sista */
+}
+
+.sf-item:hover {
+  background: #f5f8ff;
+  border-color: #e3e9f9;
+}
+
+.sf-item.active {
+  background: #edf4ff;
+  border-color: #cfe0ff;
+}
+
+.sf-item-number {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  background: #eef2ff;
+  color: #334155;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.sf-item-title {
+  color: #0f172a;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: normal;      /* radbryt */
+  word-break: break-word;   /* bryt långa ord */
+}
+
+/* Lösningar (högerkolumn) */
+/* Själva listan i snabböversikten fyller kortet */
+.sf-solutions {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  max-height: none;
+}
+
+.sf-solution {
+  border: 2px solid #eef1f7;
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  background-color: #ffffff;
+}
+
+.sf-solution:hover {
+  background: #fafcff;
+  border-color: #e3e8f5;
+}
+
+.sf-solution.active {
+  background: #f0f6ff;
+  border-color: #cfe0ff;
+}
+
+.sf-solution-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.sf-pill {
+  background: #e7efff;
+  color: #1e3a8a;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.sf-pill-link:hover {
+  background: #d7e3ff;
+  color: #14358b;
+  text-decoration: none;
+}
+
+.sf-solution-title {
+  font-weight: 600;
+  color: #0b1324;
+}
+
+.sf-solution-body {
+  color: #2b3448;
+  font-size: 13px;
+}
+
+
+/* Detaljer */
+
+/* --- Detaljvy --- */
+.sf-detail {
+  position: relative;
+}
+
+.sf-back {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  border-radius: 10px;
+}
+
+
+/* Detaljvyns header: numret överst, titel under */
+.sf-detail-head {
+  display: flex;
+  flex-direction: column;   /* stapla vertikalt */
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.sf-detail-head .sf-pill { order: 0; }   /* nummer först */
+.sf-detail-title          { order: 1; }   /* titel sen */
+
+/* (valfritt) lite nedtonad titel */
+.sf-detail-title {
+  margin: 0;
+  color: #1e3a8a;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+/* --- Sektioner – rubriker utanför box --- */
+.sf-section {
+  margin-top: 20px;
+}
+
+.sf-section-header {
+  font-weight: 500;
+  color: #1e3a8a;
+  margin-bottom: 6px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.sf-section-body {
+  border: 1px solid #cdd4e0;
+  border-radius: 6px;
+  padding: 14px 16px;
+  background: #fff;
+  color: #2a3347;
+  font-size: 14px;
+  line-height: 1.55;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+
+/* --- HTML-innehåll i sektionerna --- */
+.sf-section-body p {
+  margin: 6px 0;
+}
+
+.sf-section-body ul,
+.sf-section-body ol {
+  margin: 6px 0 6px 20px;
+}
+
+.sf-section-body li {
+  margin: 3px 0;
+}
+
+.sf-section-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+}
+
+.sf-section-body th,
+.sf-section-body td {
+  border: 1px solid #cdd4e0;  /* starkare linje i tabeller */
+  padding: 8px;
+  vertical-align: top;
+}
+
+.sf-section-body thead th {
+  background: #f3f6fb;
+  font-weight: 600;
+}
+
+.sf-section-body h1,
+.sf-section-body h2,
+.sf-section-body h3 {
+  margin: 10px 0 6px;
+  font-weight: 600;
+  color: #1f2a44;
+}
+
+
+
+.sf-detail-block {
+  margin-bottom: 12px;
+}
+
+.sf-block-title {
+  font-weight: 600;
+  color: #243145;
+  margin-bottom: 6px;
+}
+
+.sf-block-body {
+  white-space: pre-wrap;
+  color: #2a3347;
+}
+
+/* Enkel loading‑state */
+.sf-list.loading::after {
+  content: "Söker…";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+
+
+/* harmonisera texten HTML  */
+.sf-solution-body { 
+  color: #2b3448; 
+  font-size: 14px; 
+  line-height: 1.5; 
+}
+.sf-solution-body p { margin: 6px 0; }
+.sf-solution-body ul, .sf-solution-body ol { margin: 6px 0 6px 20px; }
+.sf-solution-body code { font-family: ui-monospace, Menlo, Consolas, monospace; }
+.sf-solution-body h1, .sf-solution-body h2, .sf-solution-body h3 { 
+  margin: 8px 0 4px; 
+  font-weight: 600; 
+}
+
+/* Detaljblocket som visar hels storyn i högra sektionen */
+.sf-detail-title { margin: 6px 0 12px; color:#0b1324; }
+.sf-detail-block { margin-bottom: 12px; }
+.sf-block-title { font-weight:600; color:#243145; margin-bottom: 6px; }
+.sf-block-body { white-space: pre-wrap; color:#2a3347; }
+
+
+/* Välkommen startsida  */
+.sf-solutions-empty { opacity: 0; animation: fadeIn 0.4s ease forwards; }
+@keyframes fadeIn { to { opacity: 1; } }
+
+.sf-solutions-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start; 
+  text-align: center;
+  height: 100%;
+  background: #fff;
+  border-radius: 10px;
+  padding: 40px;
+  padding-top: 60px; 
+  color: #6b7280;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.sf-solutions-empty i.fa-align-justify {
+  font-size: 48px;
+  color: #1a73e8;
+  margin-bottom: 12px;
+  transform: rotate(-45deg); 
+}
+
+.sf-solutions-empty i {
+  font-size: 40px;
+  color: #9ca3af;
+  margin-bottom: 12px;
+}
+
+.sf-solutions-empty h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 8px 0;
+}
+
+.sf-solutions-empty p {
+  margin-top: 12px;
+  font-style: italic;
+  color: #4b5563;
+}
+
+.sf-pagination {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding-top: 8px;
+  border-top: 1px solid #e5e9f2;
+}
+
+.sf-pagination .btn {
+  min-width: 34px;
+  border-radius: 8px;
+}
+
+.sf-pagination .btn.active {
+  background: #1a73e8;
+  border-color: #1a73e8;
+  color: #fff;
+}
+
+.sf-page-ellipsis {
+  display: inline-flex;
+}
+
+.sf-page-dots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  color: #6b7280;
+} 
+
+.sf-tabs {
+	display: flex;
+	align-items: center;
+	gap: 24px;
+	border-bottom: 1px solid #e5e5e5;
+	margin-bottom: 16px;
+	padding: 0 4px;
+	background: #fff;
+}
+
+.sf-tab {
+	background: none;
+	border: none;
+	padding: 12px 0 14px;
+	font-size: 16px;
+	font-weight: 600;
+	color: #6b7280;
+	cursor: pointer;
+	position: relative;
+	outline: none;
+}
+
+.sf-tab:hover {
+	color: #1f2937;
+}
+
+.sf-tab.active {
+	color: #111827;
+}
+
+.sf-tab.active:after {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: -1px;
+	height: 3px;
+	background: #111827;
+	border-radius: 2px 2px 0 0;
+}
+</css>
+<data_table>sp_instance</data_table>
+<demo_data/>
+<description/>
+<docs display_value=""/>
+<field_list/>
+<has_preview>true</has_preview>
+<id>catalogupdates</id>
+<internal>false</internal>
+<link><![CDATA[function link(scope, element, attrs, controller) {
+  
+}]]></link>
+<name>RS - Catalog updates</name>
+<option_schema/>
+<public>false</public>
+<roles/>
+<script><![CDATA[(function() {
+    data.myOffers = [];
+    data.myOffersToUpdate = [];
+    data.totalMyOffers = 0;
+    data.totalMyOffersToUpdate = 0;
+
+    var userId = gs.getUserID();
+    var threshold = gs.beginningOfLast12Months();
+
+    var gr = new GlideRecordSecure('sc_cat_item');
+    gr.addQuery('active', true);
+    gr.addQuery('x_nnab_order_to_in_service_offering.owned_by', userId);
+    gr.orderBy('name');
+    gr.query();
+
+    while (gr.next()) {
+        var category = gr.getDisplayValue('category') || '';
+        var offering = '';
+        var offeringOwner = '';
+        var updated = '';
+        var needsUpdate = false;
+
+        if (!gr.x_nnab_order_to_in_service_offering.nil()) {
+            var off = gr.x_nnab_order_to_in_service_offering.getRefRecord();
+            if (off.isValidRecord()) {
+                offering = off.getDisplayValue();
+                offeringOwner = off.getDisplayValue('owned_by');
+                updated = off.getDisplayValue('sys_updated_on');
+
+                var updatedValue = off.getValue('sys_updated_on');
+                if (updatedValue && updatedValue < threshold) {
+                    needsUpdate = true;
+                }
+            }
+        }
+
+        var item = {
+            sys_id: gr.getUniqueValue(),
+            number: gr.getDisplayValue('name') || '',
+            short_description: gr.getDisplayValue('short_description') || '',
+            description: gr.getDisplayValue('description') || '',
+            u_knowledge_transfer: category ? '/Service Catalog/' + category : '/Service Catalog',
+            u_solution: offering
+                ? ('Service offering: ' + offering +
+                   '<br/>Owner: ' + offeringOwner +
+                   '<br/>Updated on: ' + updated)
+                : '-',
+            needs_update: needsUpdate
+        };
+
+        data.myOffers.push(item);
+
+        if (needsUpdate) {
+            data.myOffersToUpdate.push(item);
+        }
+    }
+
+    data.totalMyOffers = data.myOffers.length;
+    data.totalMyOffersToUpdate = data.myOffersToUpdate.length;
+})();]]></script>
+<servicenow>false</servicenow>
+<sys_class_name>sp_widget</sys_class_name>
+<sys_created_by>266957</sys_created_by>
+<sys_created_on>2026-02-09 18:25:11</sys_created_on>
+<sys_id>a451b89c294b3210f8e00ee455457572</sys_id>
+<sys_mod_count>61</sys_mod_count>
+<sys_name>RS - Catalog updates</sys_name>
+<sys_package display_value="Global" source="global">global</sys_package>
+<sys_policy/>
+<sys_scope display_value="Global">global</sys_scope>
+<sys_update_name>sp_widget_a451b89c294b3210f8e00ee455457572</sys_update_name>
+<sys_updated_by>266957</sys_updated_by>
+<sys_updated_on>2026-03-17 18:32:53</sys_updated_on>
+<template><![CDATA[<div class="sf-wrapper">
+  <section class="pane right" ng-switch="c.viewState()">
+
+    <!-- Welcome -->
+    <div class="sf-card" ng-switch-when="welcome">
+      <div class="sf-solutions-empty">
+        <i class="fa fa-align-justify"></i>
+        <h3>Välkommen till Katalog information</h3>
+        <p>Du har inga tjänsteerbjudanden att visa</p>
+      </div>
+    </div>
+
+    <!-- Overview -->
+    <div ng-switch-when="overview">
+
+      <!-- Flikar -->
+      <div class="sf-tabs">
+        <button class="sf-tab"
+                ng-class="{'active': c.isTab('all')}"
+                ng-click="c.setTab('all')">
+          Alla
+        </button>
+
+        <button class="sf-tab"
+                ng-class="{'active': c.isTab('update')}"
+                ng-click="c.setTab('update')">
+          Behöver uppdateras
+        </button>
+      </div>
+
+      <!-- Flik: Alla -->
+      <div class="sf-card" ng-if="c.isTab('all')">
+        <h3>Alla mina tjänsteerbjudanden</h3>
+        <p>Här ser du samtliga tjänsteerbjudanden som du ansvarar för</p>
+
+        <div class="sf-solutions" ng-if="c.myOffers.length">
+          <div class="sf-solution"
+               ng-repeat="r in c.myOffers track by r.sys_id"
+               ng-click="c.select(r)">
+            <div class="sf-solution-header">
+              <span class="sf-pill">{{r.number}}</span>
+              <span class="sf-solution-title"
+                    ng-bind-html="c.safe(r.short_description)"></span>
+            </div>
+            <div class="sf-solution-body"
+                 ng-bind-html="c.safe(r.u_solution || '-')"></div>
+          </div>
+        </div>
+
+        <div class="sf-solutions-empty" ng-if="!c.myOffers.length">
+          <i class="fa fa-folder-open"></i>
+          <p>Du har inga registrerade tjänsteerbjudanden</p>
+        </div>
+      </div>
+
+      <!-- Flik: Behöver uppdateras -->
+      <div class="sf-card" ng-if="c.isTab('update')">
+        <h3>Tjänsteerbjudanden som behöver uppdateras</h3>
+        <p>Dessa tjänsteerbjudanden har inte uppdaterats på 12 månader</p>
+
+        <div class="sf-solutions" ng-if="c.myOffersToUpdate.length">
+          <div class="sf-solution"
+               ng-repeat="r in c.myOffersToUpdate track by r.sys_id"
+               ng-click="c.select(r)">
+            <div class="sf-solution-header">
+              <span class="sf-pill">{{r.number}}</span>
+              <span class="sf-solution-title"
+                    ng-bind-html="c.safe(r.short_description)"></span>
+            </div>
+            <div class="sf-solution-body"
+                 ng-bind-html="c.safe(r.u_solution || '-')"></div>
+          </div>
+        </div>
+
+        <div class="sf-solutions-empty" ng-if="!c.myOffersToUpdate.length">
+          <i class="fa fa-check-circle"></i>
+          <p>Du har inga tjänsteerbjudanden som behöver uppdateras</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Detail -->
+    <div class="sf-card sf-detail" ng-switch-when="detail">
+      <button class="btn btn-default btn-xs sf-back"
+              ng-click="c.clearSelection()">
+        Visa alla träffar
+      </button>
+
+      <div class="sf-detail-head">
+        <a class="sf-pill sf-pill-link"
+           ng-href="/nav_to.do?uri=sc_cat_item.do?sys_id={{c.active.sys_id}}"
+           target="_blank"
+           title="Öppna i backend (ny flik)">
+          {{c.active.number}}
+        </a>
+        <h3 class="sf-detail-title"
+            ng-bind-html="c.safe(c.active.short_description)"></h3>
+      </div>
+    </div>
+
+  </section>
+</div>]]></template>
+</sp_widget>
+</unload>
